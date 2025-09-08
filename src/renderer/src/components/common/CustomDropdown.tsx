@@ -1,111 +1,71 @@
-import React, { useRef, useEffect } from 'react'
-import { cn } from '../../shared/lib/utils'
+import React from "react";
+import { cn } from "@/shared/lib/utils";
 
 export interface DropdownOption {
-  label: string
-  icon?: React.ReactNode
-  onClick?: () => void
+  value: string;
+  label: string;
+  icon?: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
 }
 
 interface CustomDropdownProps {
-  open: boolean
-  onClose: () => void
-  options: DropdownOption[]
-  anchorRef: React.RefObject<HTMLButtonElement>
-  className?: string
-  alignLeft?: boolean // custom prop: if true, align dropdown to left of anchor (for right-edge avatars)
+  options: DropdownOption[];
+  onSelect: (value: string) => void;
+  className?: string;
+  align?: "left" | "right";
+  width?: string;
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
-  open,
-  onClose,
   options,
-  anchorRef,
+  onSelect,
   className,
-  alignLeft = false
+  align = "right",
+  width = "w-36",
 }) => {
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    if (!open) return
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(event.target as Node)
-      ) {
-        onClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [open, onClose, anchorRef])
-
-  // Position: absolute below anchor; supports alignLeft (dropdown grows to left of anchor)
-  const [style, setStyle] = React.useState<React.CSSProperties>({})
-  useEffect(() => {
-    if (open && anchorRef.current && dropdownRef.current) {
-      const anchorRect = anchorRef.current.getBoundingClientRect()
-      if (alignLeft) {
-        setStyle({
-          position: 'fixed',
-          right: window.innerWidth - anchorRect.right,
-          top: anchorRect.bottom + 8,
-          zIndex: 50,
-          minWidth: anchorRect.width + 40 < 160 ? 160 : anchorRect.width + 16
-        })
-      } else {
-        setStyle({
-          position: 'fixed',
-          left: anchorRect.left,
-          top: anchorRect.bottom + 8,
-          zIndex: 50,
-          minWidth: anchorRect.width + 40 < 160 ? 160 : anchorRect.width + 16
-        })
-      }
-    }
-  }, [open, anchorRef, className, alignLeft])
-
-  if (!open) return null
+  const handleSelect = (value: string, disabled?: boolean) => {
+    if (disabled) return;
+    onSelect(value);
+  };
 
   return (
-    <div
-      ref={dropdownRef}
-      className={cn(
-        'rounded-xl shadow-lg border border-[#eaebee] bg-white dark:bg-[#181d28] py-2 px-2',
-        'transition-opacity animate-in fade-in z-50',
-        'mt-1',
-        className,
-        alignLeft ? 'align-dropdown-left' : ''
-      )}
-      style={style}
-    >
-      <ul>
-        {options.map((option) => (
-          <li key={option.label}>
-            <button
-              className={cn(
-                'w-full flex items-center gap-2 px-4 py-2 rounded-lg text-[#2D3748] dark:text-white hover:bg-[#f0fdfa] hover:text-[#52aaaf] transition-colors text-base'
-              )}
-              type="button"
-              onClick={() => {
-                option.onClick?.()
-                onClose()
-              }}
-            >
-              {option.icon && <span className="w-5 h-5">{option.icon}</span>}
-              <span>{option.label}</span>
-            </button>
-          </li>
+    <div className={cn("relative", className)}>
+      <div
+        className={cn(
+          "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95",
+          width,
+          align === "right" ? "right-0" : "left-0"
+        )}
+        style={{ zIndex: 9999 }}
+      >
+        {options.map((option, index) => (
+          <button
+            key={option.value}
+            onClick={() => handleSelect(option.value, option.disabled)}
+            disabled={option.disabled}
+            className={cn(
+              "w-full text-left px-3 py-2.5 flex items-center gap-2.5 transition-colors text-sm",
+              option.disabled
+                ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                : option.danger
+                ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700",
+              index === 0 ? "rounded-t-lg" : "",
+              index === options.length - 1 ? "rounded-b-lg" : ""
+            )}
+          >
+            {option.icon && (
+              <span className="w-3.5 h-3.5 flex items-center justify-center">
+                {option.icon}
+              </span>
+            )}
+            <span>{option.label}</span>
+          </button>
         ))}
-      </ul>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default CustomDropdown
+export default CustomDropdown;

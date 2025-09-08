@@ -73,6 +73,13 @@ export function ThemeProvider({
     localStorage.setItem(`${storageKey}-colors`, JSON.stringify(settings))
   }
 
+  // Fixed setTheme function
+  const setTheme = (newTheme: Theme) => {
+    console.log('ThemeProvider setTheme called with:', newTheme)
+    setThemeState(newTheme)
+    localStorage.setItem(storageKey, newTheme)
+  }
+
   const applyTheme = () => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
@@ -111,13 +118,13 @@ export function ThemeProvider({
   }
 
   useEffect(() => {
-    localStorage.setItem(storageKey, theme)
+    console.log('Theme changed in provider:', theme)
     applyTheme()
   }, [theme, colorSettings])
 
   const value: ThemeProviderState = {
     theme,
-    setTheme: (t: Theme) => setThemeState(() => t),
+    setTheme, // Use the fixed setTheme function
     colorSettings,
     setColorSettings: updateColorSettings
   }
