@@ -151,27 +151,15 @@ const EditorPage = () => {
       const content = await window.electron.ipcRenderer.invoke('fs:readFile', resolvedPath)
       console.log('loadFileContent - File content loaded, length:', content.length)
 
+      // Always use resolvedPath as tab ID (without timestamp)
       const tabId = resolvedPath
       const existingTabIndex = openTabs.findIndex((tab) => tab.id === tabId)
 
       let newTabs = [...openTabs]
       let newActiveTabId = activeTabId
 
-      if (openInNewTab && existingTabIndex !== -1) {
-        // Create a new tab with unique ID for existing file
-        const newTab: TabFile = {
-          id: tabId + '#' + Date.now(),
-          path: resolvedPath,
-          name: getBasename(resolvedPath),
-          content: content,
-          isDirty: false,
-          lastSaved: new Date()
-        }
-        newTabs.push(newTab)
-        newActiveTabId = newTab.id
-        console.log('loadFileContent - Created new tab for existing file:', newTab.name)
-      } else if (existingTabIndex === -1) {
-        // Create new tab
+      if (existingTabIndex === -1) {
+        // Create new tab only if it doesn't exist
         const newTab: TabFile = {
           id: tabId,
           path: resolvedPath,
@@ -181,7 +169,7 @@ const EditorPage = () => {
           lastSaved: new Date()
         }
         newTabs.push(newTab)
-        newActiveTabId = tabId
+        newActiveTabId = newTab.id
         console.log('loadFileContent - Created new tab:', newTab.name)
       } else {
         // Update existing tab
@@ -222,24 +210,10 @@ const EditorPage = () => {
       type: typeof targetLineNumber
     })
 
-    // Only treat as navigation request when targetLineNumber is number and > 0
-    if (typeof targetLineNumber === 'number' && targetLineNumber > 0) {
-      console.log(
-        'Navigation request detected, calling handleFileOpen with line:',
-        targetLineNumber
-      )
-      await handleFileOpen(filePath, targetLineNumber, true) // Force new tab for navigation
-      return
-    }
-
-    // Original file selection logic for directories and regular file clicks
-    console.log('Regular file selection, checking file stats')
-
     try {
       const stats = await window.electron.ipcRenderer.invoke('fs:getFileStats', filePath)
 
       if (stats && !stats.isDirectory) {
-        // It's a file - check if it's a supported type
         if (
           filePath.endsWith('.go') ||
           filePath.endsWith('.ts') ||
@@ -247,10 +221,12 @@ const EditorPage = () => {
           filePath.endsWith('.md')
         ) {
           addToNavigationHistory(filePath)
-          await loadFileContent(filePath) // Don't pass targetLine here
+          // Convert boolean targetLineNumber to undefined if needed
+          const lineNumber = typeof targetLineNumber === 'boolean' ? undefined : targetLineNumber
+          // Don't force new tab when clicking from file explorer
+          await loadFileContent(filePath, lineNumber, false)
         }
       }
-      // For directories, the FileExplorer will handle expansion internally
     } catch (error) {
       console.error('Error in handleFileSelect:', error)
     }
@@ -538,6 +514,7 @@ const EditorPage = () => {
         <div className="flex-1 overflow-hidden">
           {activeTab === 'editor' && (
             <CodeEditor
+              key={selectedFile}
               filePath={selectedFile}
               content={fileContent}
               onContentChange={handleContentChange}
