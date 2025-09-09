@@ -15,7 +15,7 @@ interface CodeEditorProps {
   filePath: string | null
   content: string
   onContentChange: (content: string) => void
-  onFileSelect: (filePath: string, line?: number) => void
+  onFileSelect: (filePath: string, line?: number, openInNewTab?: boolean) => void
   targetLine?: number
   projectPath: string
 }
@@ -43,7 +43,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const monacoEl = useRef<HTMLDivElement>(null)
-  const [highlightedSymbols, setHighlightedSymbols] = useState<SymbolPosition[]>([])
   const [decorations, setDecorations] = useState<string[]>([])
 
   const symbolHighlightStyle = `
@@ -73,45 +72,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     if (!path1 || !path2) return false
     const normalize = (p: string) => p.replace(/\\/g, '/').toLowerCase().trim()
     return normalize(path1) === normalize(path2)
-  }
-
-  const handleNavigation = async (symbolInfo: any, isCtrlPressed: boolean) => {
-    console.log('Navigation attempt:', {
-      symbolInfo,
-      isCtrlPressed,
-      currentFile: filePath,
-      targetFile: symbolInfo.file,
-      projectPath
-    })
-
-    const isSame = isSameFile(filePath || '', symbolInfo.file)
-
-    if (isSame) {
-      // Same file - just scroll to the line
-      editorRef.current?.revealLineInCenter(symbolInfo.line)
-      editorRef.current?.setPosition({
-        lineNumber: symbolInfo.line,
-        column: 1
-      })
-    } else {
-      // Different file - need to open it
-      console.log('Navigating to different file:', symbolInfo.file, 'line:', symbolInfo.line)
-
-      try {
-        const resolvedPath = await window.electron.ipcRenderer.invoke('fs:resolvePath', {
-          inputPath: symbolInfo.file,
-          projectPath: projectPath
-        })
-        console.log('Resolved path for navigation:', resolvedPath)
-
-        // Call onFileSelect with resolved path and line number
-        onFileSelect(resolvedPath, symbolInfo.line)
-      } catch (error) {
-        console.error('Error resolving path for navigation:', error)
-        // Fallback - try with original path
-        onFileSelect(symbolInfo.file, symbolInfo.line)
-      }
-    }
   }
 
   // Get file language based on extension
@@ -211,11 +171,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             column: definition.range.startColumn || 1
           })
         } else {
-          if (typeof targetLine === 'number' && targetLine > 0) {
-            onFileSelect(definition.file, targetLine)
-          } else {
-            onFileSelect(definition.file)
-          }
+          // Always open in new tab for F12 navigation
+          onFileSelect(definition.file, targetLine, true)
         }
       }
     } catch (error) {
@@ -471,6 +428,30 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         if (isCtrlPressed) {
           event.event.preventDefault()
           event.event.stopPropagation()
+
+          console.log('Ctrl+Click: Getting definition...')
+          const definition = await window.electron.ipcRenderer.invoke('go:getDefinition', {
+            filePath: filePath,
+            line: position.lineNumber,
+            column: position.column
+          })
+
+          if (definition && definition.file && definition.range) {
+            const isSame = isSameFile(filePath || '', definition.file)
+            const targetLine = definition.range.startLine
+
+            if (isSame) {
+              // Same file navigation
+              editorRef.current?.revealLineInCenter(targetLine)
+              editorRef.current?.setPosition({
+                lineNumber: targetLine,
+                column: definition.range.startColumn || 1
+              })
+            } else {
+              // Different file navigation - ALWAYS open in new tab for Ctrl+Click
+              onFileSelect(definition.file, targetLine, true)
+            }
+          }
         }
 
         try {
@@ -508,18 +489,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
                     column: definition.range.startColumn || 1
                   })
                 } else {
-                  // Different file navigation
+                  // Different file navigation - ALWAYS open in new tab for Ctrl+Click
                   console.log('Cross-file navigation:', {
                     file: definition.file,
                     line: targetLine
                   })
 
-                  // IMPORTANT: Make sure we pass a valid number
                   if (typeof targetLine === 'number' && targetLine > 0) {
-                    onFileSelect(definition.file, targetLine)
+                    onFileSelect(definition.file, targetLine, true) // Force new tab
                   } else {
-                    console.warn('Invalid target line:', targetLine)
-                    onFileSelect(definition.file)
+                    onFileSelect(definition.file, undefined, true)
                   }
                 }
               } else {
