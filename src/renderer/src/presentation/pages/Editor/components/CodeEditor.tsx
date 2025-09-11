@@ -15,8 +15,9 @@ interface CodeEditorProps {
   filePath: string | null
   content: string
   onContentChange: (content: string) => void
-  onFileSelect: (filePath: string, line?: number, openInNewTab?: boolean) => void
+  onFileSelect: (filePath: string, line?: number, column?: number, openInNewTab?: boolean) => void
   targetLine?: number
+  targetColumn?: number
   projectPath: string
 }
 
@@ -39,6 +40,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   onContentChange,
   onFileSelect,
   targetLine,
+  targetColumn,
   projectPath
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -354,15 +356,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   // Handle target line scrolling
   useEffect(() => {
     if (editorRef.current && targetLine && targetLine > 0) {
-      console.log('Scrolling to target line:', targetLine)
+      console.log('Scrolling to target line:', targetLine, 'column:', targetColumn)
       setTimeout(() => {
         editorRef.current?.revealLineInCenter(targetLine)
         editorRef.current?.setPosition({
           lineNumber: targetLine,
-          column: 1
+          column: targetColumn || 1
         })
 
-        // Highlight the target line briefly
         const targetDecorations = editorRef.current?.deltaDecorations(
           [],
           [
@@ -376,7 +377,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           ]
         )
 
-        // Remove highlight after 3 seconds
         setTimeout(() => {
           if (targetDecorations && editorRef.current) {
             editorRef.current.deltaDecorations(targetDecorations, [])
@@ -384,7 +384,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         }, 3000)
       }, 100)
     }
-  }, [targetLine])
+  }, [targetLine, targetColumn])
 
   // Enhanced symbol highlighting and navigation
   useEffect(() => {

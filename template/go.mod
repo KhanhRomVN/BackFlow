@@ -1,4 +1,4 @@
-module domain_centric_microservice
+module template
 
 go 1.21
 

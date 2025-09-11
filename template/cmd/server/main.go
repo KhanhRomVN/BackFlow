@@ -1,20 +1,26 @@
+// FILE: template/cmd/server/main.go
+
 package main
 
 import (
-	"domain_centric_microservice/infrastructure/logger"
-	http_interface "domain_centric_microservice/interfaces/http"
 	"fmt"
 	"net/http"
+	"template/infrastructure/logger"
+	http_interface "template/interfaces/http"
 )
 
+// main is the application entry point
+// @function main
+// @package main
+// @entry-point true
+// @server-start true
+// @port 8080
+// @ast-trackable true
 func main() {
-	// Initialize logger
 	appLogger := logger.NewPrettyLogger("APP", logger.LevelDebug, true)
 
-	// Create router
 	router := http_interface.NewRouter(appLogger)
 
-	// Start server
 	appLogger.Info("SERVER_START", map[string]interface{}{
 		"port": 8080,
 	}, "Starting server")
