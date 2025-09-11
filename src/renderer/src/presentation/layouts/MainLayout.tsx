@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { useTheme } from '../providers/theme-provider'
 
 const MainLayout: React.FC = () => {
   const themeContext = useTheme()
   const location = useLocation()
-  const navigate = useNavigate()
   const [sidebarState, setSidebarState] = useState({
     folderOpen: true,
     diagramOpen: false

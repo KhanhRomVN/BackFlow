@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain } from 'electron'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 import {
@@ -8,15 +8,8 @@ import {
   resolveCallTargets,
   findGoDefinition,
   findSymbolInProject,
-  getProjectRoot,
-  extractRoutesFromContent
+  getProjectRoot
 } from '../utils/goUtils'
-import {
-  discoverAPIRoutesInternal,
-  traceCompleteDataFlow,
-  discoverRoutesInFile,
-  getGoFilesRecursive
-} from '../utils/apiFlowUtils'
 
 // Types
 interface CallGraph {
@@ -24,18 +17,7 @@ interface CallGraph {
   calls: any[]
 }
 
-interface APIRoute {
-  id: string
-  method: string
-  path: string
-  handler: string
-  handlerFile: string
-  handlerLine: number
-  middleware?: string[]
-  codeSnippet?: string
-}
-
-export function registerGoHandlers(mainWindow: BrowserWindow | null) {
+export function registerGoHandlers() {
   // Enhanced Go project analyzer with AST parsing simulation
   ipcMain.handle('go:analyzeProject', async (_, projectPath: string) => {
     try {
@@ -111,134 +93,6 @@ export function registerGoHandlers(mainWindow: BrowserWindow | null) {
     }
   })
 
-  // API Flow Tracer - Discover API Routes
-  ipcMain.handle('go:discoverAPIRoutes', async (_, projectPath: string) => {
-    try {
-      const routes: APIRoute[] = []
-
-      // Recursively find Go files in the project
-      const goFiles = await getGoFilesRecursive(projectPath)
-
-      for (const filePath of goFiles) {
-        const content = readFileSync(filePath, 'utf-8')
-        const relativePath = filePath.replace(projectPath, '').substring(1)
-
-        // Extract package name
-        const packageMatch = content.match(/^package\s+(\w+)/m)
-        const packageName = packageMatch ? packageMatch[1] : 'main'
-
-        // Discover routes using multiple patterns
-        const fileRoutes = await discoverRoutesInFile(content, filePath, relativePath, packageName)
-        routes.push(...fileRoutes)
-      }
-
-      // Remove duplicates and sort
-      const uniqueRoutes = routes.filter(
-        (route, index, self) =>
-          index === self.findIndex((r) => r.method === route.method && r.path === route.path)
-      )
-
-      console.log(`Discovered ${uniqueRoutes.length} API routes in project`)
-      return uniqueRoutes
-    } catch (error) {
-      console.error('Error discovering API routes:', error)
-      throw new Error(`Error discovering API routes: ${error}`)
-    }
-  })
-
-  // API Flow Tracer - Trace API Data Flow
-  ipcMain.handle('go:traceAPIFlow', async (_, { projectPath, routeId }) => {
-    try {
-      // Find the specific route
-      const allRoutes = await discoverAPIRoutesInternal(projectPath)
-      const targetRoute = allRoutes.find((r) => r.id === routeId)
-
-      if (!targetRoute) {
-        throw new Error(`Route with ID ${routeId} not found`)
-      }
-
-      console.log(`Tracing data flow for: ${targetRoute.method} ${targetRoute.path}`)
-
-      // Trace the complete data flow
-      const flowData = await traceCompleteDataFlow(projectPath, targetRoute)
-
-      return {
-        route: targetRoute,
-        nodes: flowData.nodes,
-        edges: flowData.edges
-      }
-    } catch (error) {
-      console.error('Error tracing API flow:', error)
-      throw new Error(`Error tracing API flow: ${error}`)
-    }
-  })
-
-  // Main flow structure analyzer
-  ipcMain.handle('go:analyzeMainFlow', async (_, projectPath: string) => {
-    try {
-      const mainFlowStructure = {
-        mainFile: '',
-        routerFile: '',
-        handlers: [] as string[],
-        routes: [] as any[],
-        middlewares: [] as string[]
-      }
-
-      // Recursively find files
-      const findFiles = async (dirPath: string) => {
-        try {
-          const items = readdirSync(dirPath, { withFileTypes: true })
-
-          for (const item of items) {
-            const fullPath = join(dirPath, item.name)
-
-            if (item.isDirectory() && !item.name.startsWith('.') && item.name !== 'vendor') {
-              await findFiles(fullPath)
-            } else if (item.isFile() && item.name.endsWith('.go')) {
-              const content = readFileSync(fullPath, 'utf-8')
-
-              // Check for main function
-              if (content.includes('func main()') || content.includes('func main(')) {
-                mainFlowStructure.mainFile = fullPath
-              }
-
-              // Check for router patterns
-              if (
-                content.includes('mux.Handle') ||
-                content.includes('router') ||
-                content.includes('NewRouter')
-              ) {
-                mainFlowStructure.routerFile = fullPath
-
-                // Extract routes
-                const routes = extractRoutesFromContent(content)
-                mainFlowStructure.routes.push(...routes)
-              }
-
-              // Check for handlers
-              if (fullPath.includes('handler') || content.includes('http.ResponseWriter')) {
-                mainFlowStructure.handlers.push(fullPath)
-              }
-
-              // Check for middleware
-              if (fullPath.includes('middleware') || content.includes('http.Handler')) {
-                mainFlowStructure.middlewares.push(fullPath)
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error reading directory ${dirPath}:`, error)
-        }
-      }
-
-      await findFiles(projectPath)
-
-      return mainFlowStructure
-    } catch (error) {
-      throw new Error(`Error analyzing main flow: ${error}`)
-    }
-  })
-
   ipcMain.handle('go:getDefinition', async (_, { filePath, line, column }) => {
     try {
       console.log('Go definition request:', { filePath, line, column })
@@ -264,7 +118,7 @@ export function registerGoHandlers(mainWindow: BrowserWindow | null) {
     }
   })
 
-  ipcMain.handle('go:findSymbolUsage', async (_, { projectPath, symbolName, filePath }) => {
+  ipcMain.handle('go:findSymbolUsage', async (_, { projectPath, symbolName }) => {
     try {
       const goFiles = getGoFiles(projectPath)
       const references = []

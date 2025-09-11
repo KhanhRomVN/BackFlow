@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs'
-import { join, relative } from 'path'
+import { relative } from 'path'
 
 export interface CodeStructure {
   filePath: string
@@ -294,7 +294,7 @@ export class ASTParser {
   private static extractTypeBlock(
     lines: string[],
     startIndex: number,
-    type: string
+    _type: string
   ): { content: string; endIndex: number } | null {
     let content = lines[startIndex]
     let i = startIndex
@@ -631,7 +631,7 @@ export class ASTParser {
     return params
   }
 
-  private static extractCommentsForLine(content: string, lineNumber: number): string[] {
+  private static extractCommentsForLine(content: string, _lineNumber: number): string[] {
     const comments: string[] = []
     const lines = content.split('\n')
 
@@ -649,28 +649,6 @@ export class ASTParser {
     }
 
     return comments
-  }
-
-  private static extractCodeBlock(lines: string[], startIndex: number): string {
-    let content = lines[startIndex]
-    let i = startIndex
-    let braceCount = 0
-
-    if (content.includes('{')) {
-      braceCount = 1
-      i++
-
-      while (i < lines.length && braceCount > 0) {
-        const line = lines[i]
-        braceCount += (line.match(/{/g) || []).length
-        braceCount -= (line.match(/}/g) || []).length
-
-        content += '\n' + line
-        i++
-      }
-    }
-
-    return content
   }
 }
 

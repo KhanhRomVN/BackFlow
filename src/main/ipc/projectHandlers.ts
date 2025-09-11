@@ -1,9 +1,9 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { copyDirectoryRecursive, updateProjectReferences } from '../utils/fileUtils'
 
-export function registerProjectHandlers(mainWindow: BrowserWindow | null) {
+export function registerProjectHandlers() {
   // Project creation handler
   ipcMain.handle('project:create', async (_, { parentPath, projectName }) => {
     try {

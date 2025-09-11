@@ -1,9 +1,8 @@
-import { ipcMain, BrowserWindow } from 'electron'
-import { join } from 'path'
+import { ipcMain } from 'electron'
 import { ASTParser, CodeStructure } from '../utils/astParser'
 import { getGoFilesRecursive } from '../utils/apiFlowUtils'
 
-export function registerASTHandlers(mainWindow: BrowserWindow | null) {
+export function registerASTHandlers() {
   // Handler để phân tích cấu trúc AST của toàn bộ project
   ipcMain.handle('ast:analyzeProject', async (_, projectPath: string) => {
     try {
@@ -23,7 +22,10 @@ export function registerASTHandlers(mainWindow: BrowserWindow | null) {
       }
     } catch (error) {
       console.error('Error analyzing project AST:', error)
-      return { success: false, error: error.message }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
     }
   })
 
@@ -38,7 +40,10 @@ export function registerASTHandlers(mainWindow: BrowserWindow | null) {
       }
     } catch (error) {
       console.error('Error analyzing file AST:', error)
-      return { success: false, error: error.message }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
     }
   })
 }

@@ -68,12 +68,10 @@ export async function discoverRoutesInFile(
   content: string,
   filePath: string,
   relativePath: string,
-  packageName: string
+  _packageName: string
 ): Promise<APIRoute[]> {
   const routes: APIRoute[] = []
   const lines = content.split('\n')
-
-  // Multiple route discovery patterns for different Go web frameworks
 
   // 1. Gorilla Mux patterns
   const muxPatterns = [
@@ -126,7 +124,7 @@ export function parseRouteMatch(
   match: RegExpExecArray,
   frameworkType: string,
   content: string,
-  filePath: string,
+  _filePath: string,
   relativePath: string,
   lines: string[]
 ): APIRoute | null {

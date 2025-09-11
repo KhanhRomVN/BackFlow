@@ -75,19 +75,6 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
     }
   }
 
-  // Add this function to group elements by type
-  const groupElementsByType = (astData: CodeStructure) => {
-    return {
-      types: astData.types,
-      structs: astData.structs,
-      interfaces: astData.interfaces,
-      functions: astData.functions,
-      constants: astData.constants,
-      variables: astData.variables,
-      imports: astData.imports
-    }
-  }
-
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections)
     if (newExpanded.has(section)) {

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import FileExplorer from './components/FileExplorer'
 import CodeEditor from './components/CodeEditor'
-import APIFlowTracer from './components/APIFlowTracer'
 import FileStructureViewer from './components/FileStructureViewer'
 import TabBar from './components/TabBar'
 import { FileItem, TabFile } from './types'
@@ -50,7 +49,7 @@ const EditorPage = () => {
   }, [])
 
   const setupEditorEventListeners = () => {
-    const handleOpenFileRequest = (event: any, data: { file: string; line?: number }) => {
+    const handleOpenFileRequest = (_event: any, data: { file: string; line?: number }) => {
       console.log('Received file open request:', data)
       handleFileOpen(data.file, data.line)
     }
@@ -78,7 +77,7 @@ const EditorPage = () => {
     try {
       await window.electron.ipcRenderer.invoke('fs:watchDirectory', folderPath)
 
-      window.electron.ipcRenderer.on('fs:fileChanged', (event, data) => {
+      window.electron.ipcRenderer.on('fs:fileChanged', (_event, data) => {
         console.log('File changed:', data)
         loadProject()
       })
@@ -533,10 +532,6 @@ const EditorPage = () => {
               targetLine={targetLine}
               projectPath={folderPath}
             />
-          )}
-
-          {activeTab === 'flow' && (
-            <APIFlowTracer projectPath={folderPath} selectedFile={selectedFile} />
           )}
 
           {activeTab === 'structure' && (

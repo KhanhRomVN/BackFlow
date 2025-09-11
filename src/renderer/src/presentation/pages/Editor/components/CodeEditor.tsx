@@ -5,17 +5,11 @@ import { loader } from '@monaco-editor/react'
 // Configure Monaco Editor loader
 loader.config({ monaco })
 
-interface SymbolPosition {
-  line: number
-  column: number
-  length: number
-}
-
 interface CodeEditorProps {
   filePath: string | null
   content: string
   onContentChange: (content: string) => void
-  onFileSelect: (filePath: string, line?: number, column?: number, openInNewTab?: boolean) => void
+  onFileSelect: (filePath: string, line?: number, openInNewTab?: boolean) => void | Promise<void>
   targetLine?: number
   targetColumn?: number
   projectPath: string
@@ -199,13 +193,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         wordWrap: 'on',
         lineNumbers: 'on',
         renderWhitespace: 'selection',
-        renderIndentGuides: true,
+        guides: {
+          indentation: true
+        },
         folding: true,
         foldingHighlight: true,
         showFoldingControls: 'always',
         smoothScrolling: true,
         cursorBlinking: 'smooth',
-        cursorSmoothCaretAnimation: true,
+        cursorSmoothCaretAnimation: 'on',
         renderLineHighlight: 'all',
         selectOnLineNumbers: true,
         roundedSelection: false,
@@ -220,7 +216,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         suggestOnTriggerCharacters: true,
         acceptSuggestionOnCommitCharacter: true,
         acceptSuggestionOnEnter: 'on',
-        wordBasedSuggestions: true
+        wordBasedSuggestions: 'currentDocument'
       })
 
       // Handle content changes
@@ -256,7 +252,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         // Configure Go language features
         monaco.languages.registerDefinitionProvider('go', {
-          provideDefinition: async (model, position) => {
+          provideDefinition: async (_model, position) => {
             try {
               console.log('Monaco Definition provider called:', {
                 filePath,

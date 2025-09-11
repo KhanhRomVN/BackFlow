@@ -72,7 +72,7 @@ const TabBar: React.FC<TabBarProps> = ({
   return (
     <div className="bg-gray-800 border-b border-gray-700 flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600">
       <div className="flex">
-        {tabs.map((tab, index) => (
+        {tabs.map((tab) => (
           <div
             key={tab.id}
             className={`

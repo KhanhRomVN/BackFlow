@@ -4,10 +4,10 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerFsHandlers } from './ipc/fsHandlers'
-import { registerGoHandlers } from './ipc/goHandlers'
 import { registerEditorHandlers } from './ipc/editorHandlers'
 import { registerProjectHandlers } from './ipc/projectHandlers'
 import { registerASTHandlers } from './ipc/astHandlers'
+import { registerGoHandlers } from './ipc/goHandlers'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -61,10 +61,10 @@ function createWindow(): void {
 // Register all IPC handlers
 function registerAllHandlers() {
   registerFsHandlers(mainWindow)
-  registerGoHandlers(mainWindow)
+  registerGoHandlers()
   registerEditorHandlers(mainWindow)
-  registerProjectHandlers(mainWindow)
-  registerASTHandlers(mainWindow)
+  registerProjectHandlers()
+  registerASTHandlers()
 }
 
 // This method will be called when Electron has finished initialization
