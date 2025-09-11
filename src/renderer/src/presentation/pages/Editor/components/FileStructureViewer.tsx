@@ -113,33 +113,20 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
     }
   }
 
-  // Update the handleElementClick function
+  // Updated handleElementClick function - only shows details, doesn't navigate
   const handleElementClick = async (element: any, type: string) => {
     const astElement = { ...element, type }
     setSelectedElement(astElement)
-    onElementSelect({ line: element.line })
+
     // Load usage references for this element
     const references = await findUsageReferences(element.name, filePath!)
     setUsageReferences(references)
   }
 
-  const renderElement = (element: any, type: string) => (
-    <div
-      key={`${type}-${element.name}-${element.line}`}
-      className="p-2 hover:bg-gray-700 cursor-pointer rounded text-sm"
-      onClick={() => handleElementClick(element, type)}
-    >
-      <div className="flex justify-between items-center">
-        <span className="font-medium">{element.name}</span>
-        <span className="text-gray-400 text-xs">Line {element.line}</span>
-      </div>
-      {element.codeSnippet && (
-        <pre className="text-xs mt-1 bg-gray-800 p-1 rounded overflow-x-auto">
-          {element.codeSnippet}
-        </pre>
-      )}
-    </div>
-  )
+  // New handler for double-click events to navigate to code editor
+  const handleElementDoubleClick = (element: any) => {
+    onElementSelect({ line: element.line })
+  }
 
   // Update the renderSection function to handle different element types
   const renderSection = (title: string, items: any[], type: string) => {
@@ -163,6 +150,8 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
                 key={`${type}-${item.name}`}
                 className="p-1 hover:bg-gray-700 cursor-pointer rounded text-xs"
                 onClick={() => handleElementClick(item, type)}
+                onDoubleClick={() => handleElementDoubleClick(item)}
+                title="Single click to view details, double click to navigate to code"
               >
                 <div className="flex justify-between items-center">
                   <span className="font-medium">{item.name}</span>
@@ -267,7 +256,13 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
             {renderUsageReferences()}
           </div>
         ) : (
-          <div className="text-gray-400 text-sm">Select an element to view details</div>
+          <div className="text-gray-400 text-sm">
+            Select an element to view details
+            <br />
+            <span className="text-xs">
+              Tip: Single click to view, double click to navigate to code
+            </span>
+          </div>
         )}
       </div>
     </div>
