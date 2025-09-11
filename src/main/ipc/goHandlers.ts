@@ -263,4 +263,31 @@ export function registerGoHandlers(mainWindow: BrowserWindow | null) {
       return null
     }
   })
+
+  ipcMain.handle('go:findSymbolUsage', async (_, { projectPath, symbolName, filePath }) => {
+    try {
+      const goFiles = getGoFiles(projectPath)
+      const references = []
+
+      for (const file of goFiles) {
+        const content = readFileSync(file, 'utf-8')
+        const lines = content.split('\n')
+
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes(symbolName)) {
+            references.push({
+              file: file.replace(projectPath, '').substring(1),
+              line: i + 1,
+              code: lines[i].trim()
+            })
+          }
+        }
+      }
+
+      return references
+    } catch (error) {
+      console.error('Error finding symbol usage:', error)
+      return []
+    }
+  })
 }

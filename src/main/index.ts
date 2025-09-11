@@ -7,6 +7,7 @@ import { registerFsHandlers } from './ipc/fsHandlers'
 import { registerGoHandlers } from './ipc/goHandlers'
 import { registerEditorHandlers } from './ipc/editorHandlers'
 import { registerProjectHandlers } from './ipc/projectHandlers'
+import { registerASTHandlers } from './ipc/astHandlers'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -63,6 +64,7 @@ function registerAllHandlers() {
   registerGoHandlers(mainWindow)
   registerEditorHandlers(mainWindow)
   registerProjectHandlers(mainWindow)
+  registerASTHandlers(mainWindow)
 }
 
 // This method will be called when Electron has finished initialization

@@ -672,29 +672,6 @@ export class ASTParser {
 
     return content
   }
-
-  private static extractComments(lines: string[], startIndex: number): string[] {
-    const comments: string[] = []
-
-    // Look for comments immediately before the start index
-    for (let i = startIndex - 1; i >= 0; i--) {
-      const line = lines[i].trim()
-      if (line.startsWith('//')) {
-        comments.unshift(line.substring(2).trim())
-      } else if (line.startsWith('/*')) {
-        // Handle block comments
-        let commentText = line.substring(2)
-        if (line.includes('*/')) {
-          commentText = commentText.substring(0, commentText.indexOf('*/'))
-        }
-        comments.unshift(commentText.trim())
-      } else {
-        break // Stop when we hit non-comment lines
-      }
-    }
-
-    return comments
-  }
 }
 
 // Utility function to analyze entire project

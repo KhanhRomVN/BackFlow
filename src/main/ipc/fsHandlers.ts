@@ -83,25 +83,28 @@ export function registerFsHandlers(mainWindow: BrowserWindow | null) {
   ipcMain.handle('fs:watchDirectory', async (_, path: string) => {
     return new Promise((resolve) => {
       try {
-        const watcher = watch(path, { recursive: true }, (eventType, filename) => {
-          if (filename) {
-            mainWindow?.webContents.send('fs:fileChanged', {
-              eventType,
-              filename,
-              fullPath: join(path, filename)
-            })
-          }
-        })
-
-        resolve(true)
-
-        // Cleanup watcher when window closes
-        mainWindow?.on('closed', () => {
-          watcher.close()
-        })
+        // Check if recursive watching is supported
+        if (typeof watch === 'function') {
+          const watcher = watch(path, { recursive: true }, (eventType, filename) => {
+            if (filename) {
+              mainWindow?.webContents.send('fs:fileChanged', {
+                eventType,
+                filename,
+                fullPath: join(path, filename)
+              })
+            }
+          })
+          resolve(true)
+          mainWindow?.on('closed', () => {
+            watcher.close()
+          })
+        } else {
+          console.warn('Recursive file watching not supported on this platform')
+          resolve(false)
+        }
       } catch (error) {
         console.error(`Failed to watch directory: ${path}. Error: ${error}`)
-        resolve(false) // Resolve with false instead of throwing
+        resolve(false)
       }
     })
   })

@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
+import { join } from 'path'
 import { ASTParser, CodeStructure } from '../utils/astParser'
 import { getGoFilesRecursive } from '../utils/apiFlowUtils'
 
@@ -29,9 +30,8 @@ export function registerASTHandlers(mainWindow: BrowserWindow | null) {
   // Handler để phân tích cấu trúc AST của một file cụ thể
   ipcMain.handle('ast:analyzeFile', async (_, { projectPath, filePath }) => {
     try {
-      const fullPath = join(projectPath, filePath)
-      const structure = ASTParser.parseFile(fullPath, projectPath)
-
+      // Use the absolute filePath directly instead of joining with projectPath
+      const structure = ASTParser.parseFile(filePath, projectPath)
       return {
         success: true,
         structure

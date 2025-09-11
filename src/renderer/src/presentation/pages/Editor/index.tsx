@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import FileExplorer from './components/FileExplorer'
 import CodeEditor from './components/CodeEditor'
 import APIFlowTracer from './components/APIFlowTracer'
+import FileStructureViewer from './components/FileStructureViewer'
 import TabBar from './components/TabBar'
 import { FileItem, TabFile } from './types'
 
@@ -16,7 +17,7 @@ const EditorPage = () => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState<string>('')
   const [fileTree, setFileTree] = useState<FileItem[]>([])
-  const [activeTab, setActiveTab] = useState<'editor' | 'flow'>('editor')
+  const [activeTab, setActiveTab] = useState<'editor' | 'flow' | 'structure'>('editor')
   const [isLoading, setIsLoading] = useState(true)
   const [showFileExplorer, setShowFileExplorer] = useState(true)
   const [navigationHistory, setNavigationHistory] = useState<
@@ -433,6 +434,16 @@ const EditorPage = () => {
           >
             API Flow Tracer
           </button>
+          <button
+            onClick={() => setActiveTab('structure')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'structure'
+                ? 'text-white bg-gray-700 border-b-2 border-blue-400'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            File Structure
+          </button>
 
           {/* Navigation Controls */}
           <div className="ml-auto flex items-center space-x-2 pr-4">
@@ -526,6 +537,16 @@ const EditorPage = () => {
 
           {activeTab === 'flow' && (
             <APIFlowTracer projectPath={folderPath} selectedFile={selectedFile} />
+          )}
+
+          {activeTab === 'structure' && (
+            <FileStructureViewer
+              filePath={selectedFile}
+              projectPath={folderPath}
+              onElementSelect={({ line }) => {
+                handleFileOpen(selectedFile!, line, false)
+              }}
+            />
           )}
         </div>
       </div>

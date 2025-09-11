@@ -25,7 +25,6 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', {
       ...electronAPI,
       dialog: api,
-      // Expose ipcRenderer for FlowDiagram component
       ipcRenderer: {
         invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
         on: (channel: string, func: (...args: any[]) => void) => {
