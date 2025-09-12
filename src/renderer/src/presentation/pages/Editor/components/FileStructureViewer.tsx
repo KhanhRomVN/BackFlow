@@ -109,22 +109,18 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
   }
 
   // Add a function to find usage references
-  const findUsageReferences = async (symbolName: string, _p0: string) => {
+  const findUsageReferences = async (symbolName: string, currentFilePath: string) => {
     try {
       const references = await window.electron.ipcRenderer.invoke('go:findSymbolUsage', {
         projectPath,
         symbolName,
-        filePath: null // Search entire project
+        filePath: currentFilePath // Include current file in search
       })
 
+      // Remove the filter that excludes current file
       return references.filter((ref: { code: string }) => {
-        const code = ref.code.toLowerCase()
-        return (
-          !code.includes('//') &&
-          !code.includes('@function') &&
-          !code.includes('func ' + symbolName) &&
-          !code.match(new RegExp(`//.*${symbolName}`))
-        )
+        const isNotComment = !ref.code.trim().startsWith('//')
+        return isNotComment
       })
     } catch (error) {
       console.error('Error finding usage references:', error)
@@ -143,7 +139,7 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
     const astElement = { ...element, type }
     setSelectedElement(astElement)
 
-    // Load usage references for this element
+    // Load usage references for this element across entire project
     const references = await findUsageReferences(element.name, filePath!)
     setUsageReferences(references)
   }

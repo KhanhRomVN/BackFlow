@@ -549,17 +549,26 @@ export class ASTParser {
     let i = startIndex
     let braceCount = 0
 
+    // Count opening and closing braces to find the complete function block
     if (content.includes('{')) {
       braceCount++
       i++
 
       while (i < lines.length && braceCount > 0) {
         const line = lines[i]
-        if (line.includes('{')) braceCount++
-        if (line.includes('}')) braceCount--
+
+        // Count all braces in the line
+        for (const char of line) {
+          if (char === '{') braceCount++
+          if (char === '}') braceCount--
+        }
 
         content += '\n' + line
         i++
+
+        if (braceCount === 0) {
+          break
+        }
       }
 
       return { content, endIndex: i - 1 }
