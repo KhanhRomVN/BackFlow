@@ -32,12 +32,21 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
   const [usageReferences, setUsageReferences] = useState<UsageReference[]>([])
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
+  // Add new state for duplicate symbols
+  const [duplicateSymbols, setDuplicateSymbols] = useState<{ [key: string]: any[] }>({})
 
   useEffect(() => {
     if (filePath) {
       loadASTData()
     }
   }, [filePath])
+
+  // Load duplicate symbols when component mounts
+  useEffect(() => {
+    if (projectPath) {
+      loadDuplicateSymbols()
+    }
+  }, [projectPath])
 
   const loadASTData = async () => {
     try {
@@ -75,6 +84,20 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
     }
   }
 
+  const loadDuplicateSymbols = async () => {
+    try {
+      const result = await window.electron.ipcRenderer.invoke(
+        'ast:getDuplicateSymbols',
+        projectPath
+      )
+      if (result.success) {
+        setDuplicateSymbols(result.duplicates)
+      }
+    } catch (error) {
+      console.error('Error loading duplicate symbols:', error)
+    }
+  }
+
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections)
     if (newExpanded.has(section)) {
@@ -86,18 +109,33 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
   }
 
   // Add a function to find usage references
-  const findUsageReferences = async (symbolName: string, filePath: string) => {
+  const findUsageReferences = async (symbolName: string, _p0: string) => {
     try {
       const references = await window.electron.ipcRenderer.invoke('go:findSymbolUsage', {
         projectPath,
         symbolName,
-        filePath
+        filePath: null // Search entire project
       })
-      return references
+
+      return references.filter((ref: { code: string }) => {
+        const code = ref.code.toLowerCase()
+        return (
+          !code.includes('//') &&
+          !code.includes('@function') &&
+          !code.includes('func ' + symbolName) &&
+          !code.match(new RegExp(`//.*${symbolName}`))
+        )
+      })
     } catch (error) {
       console.error('Error finding usage references:', error)
       return []
     }
+  }
+
+  // Add this function to check for duplicates
+  const getDuplicateSymbols = (element: ASTElement) => {
+    const key = `${element.type}:${element.name}`
+    return duplicateSymbols[key] || []
   }
 
   // Updated handleElementClick function - only shows details, doesn't navigate
@@ -182,6 +220,41 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
     )
   }
 
+  const renderDuplicateSymbols = () => {
+    if (!selectedElement) return null
+
+    const duplicates = getDuplicateSymbols(selectedElement)
+    if (duplicates.length === 0) return null
+
+    return (
+      <div className="mt-6">
+        <h4 className="font-medium text-yellow-300 mb-2">Duplicate Symbols Found!</h4>
+        <div className="space-y-2">
+          {duplicates.map((dup, index) => (
+            <div
+              key={index}
+              className="bg-yellow-900 p-3 rounded text-sm cursor-pointer hover:bg-yellow-800"
+              onClick={() =>
+                window.electron.ipcRenderer.invoke('editor:openFile', {
+                  file: dup.file,
+                  line: dup.line
+                })
+              }
+            >
+              <div className="flex justify-between items-center">
+                <span className="text-yellow-400">{dup.file.split('/').pop()}</span>
+                <span className="text-yellow-200 text-xs">Line {dup.line}</span>
+              </div>
+              <div className="text-xs mt-1 text-yellow-200">
+                {dup.type}: {dup.name}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   if (!filePath) {
     return <div className="p-4 text-gray-400 text-sm">Select a file to view its structure</div>
   }
@@ -241,6 +314,7 @@ const FileStructureViewer: React.FC<FileStructureViewerProps> = ({
             )}
 
             {renderUsageReferences()}
+            {renderDuplicateSymbols()}
           </div>
         ) : (
           <div className="text-gray-400 text-sm">

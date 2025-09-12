@@ -118,21 +118,35 @@ export function registerGoHandlers() {
     }
   })
 
-  ipcMain.handle('go:findSymbolUsage', async (_, { projectPath, symbolName }) => {
+  ipcMain.handle('go:findSymbolUsage', async (_, { projectPath, symbolName, filePath }) => {
     try {
       const goFiles = getGoFiles(projectPath)
       const references = []
+      // Create a regex pattern to match function calls
+      const functionCallPattern = new RegExp(`\\.${symbolName}\\s*\\(|\\b${symbolName}\\s*\\(`)
 
       for (const file of goFiles) {
         const content = readFileSync(file, 'utf-8')
         const lines = content.split('\n')
 
         for (let i = 0; i < lines.length; i++) {
-          if (lines[i].includes(symbolName)) {
+          const line = lines[i].trim()
+
+          // Skip comment lines and function definitions
+          if (
+            line.startsWith('//') ||
+            line.includes('@function') ||
+            line.match(new RegExp(`func\\s+.*${symbolName}\\s*\\(`))
+          ) {
+            continue
+          }
+
+          // Use the function call pattern to match
+          if (functionCallPattern.test(line)) {
             references.push({
               file: file.replace(projectPath, '').substring(1),
               line: i + 1,
-              code: lines[i].trim()
+              code: line
             })
           }
         }

@@ -95,6 +95,13 @@ export interface Comment {
   type: 'line' | 'block'
 }
 
+export interface ProjectSymbol {
+  name: string
+  type: string
+  file: string
+  line: number
+}
+
 export class ASTParser {
   static parseFile(filePath: string, projectPath: string): CodeStructure {
     const content = readFileSync(filePath, 'utf-8')
@@ -664,4 +671,71 @@ export async function analyzeProject(projectPath: string): Promise<CodeStructure
   }
 
   return structures
+}
+
+export async function analyzeProjectSymbols(projectPath: string): Promise<ProjectSymbol[]> {
+  const { getGoFilesRecursive } = await import('./apiFlowUtils')
+  const goFiles = await getGoFilesRecursive(projectPath)
+  const symbols: ProjectSymbol[] = []
+
+  for (const filePath of goFiles) {
+    const structure = ASTParser.parseFile(filePath, projectPath)
+
+    // Collect all symbols
+    structure.functions.forEach((f) =>
+      symbols.push({
+        name: f.name,
+        type: 'function',
+        file: structure.filePath,
+        line: f.line
+      })
+    )
+
+    structure.structs.forEach((s) =>
+      symbols.push({
+        name: s.name,
+        type: 'struct',
+        file: structure.filePath,
+        line: s.line
+      })
+    )
+
+    structure.interfaces.forEach((i) =>
+      symbols.push({
+        name: i.name,
+        type: 'interface',
+        file: structure.filePath,
+        line: i.line
+      })
+    )
+
+    structure.types.forEach((t) =>
+      symbols.push({
+        name: t.name,
+        type: 'type',
+        file: structure.filePath,
+        line: t.line
+      })
+    )
+
+    structure.constants.forEach((c) =>
+      symbols.push({
+        name: c.name,
+        type: 'constant',
+        file: structure.filePath,
+        line: c.line
+      })
+    )
+
+    structure.variables.forEach((v) =>
+      symbols.push({
+        name: v.name,
+        type: 'variable',
+        file: structure.filePath,
+        line: v.line
+      })
+    )
+  }
+
+  return symbols
 }

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { ASTParser, CodeStructure } from '../utils/astParser'
+import { analyzeProjectSymbols, ASTParser, CodeStructure, ProjectSymbol } from '../utils/astParser'
 import { getGoFilesRecursive } from '../utils/apiFlowUtils'
 
 export function registerASTHandlers() {
@@ -40,6 +40,42 @@ export function registerASTHandlers() {
       }
     } catch (error) {
       console.error('Error analyzing file AST:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
+    }
+  })
+
+  ipcMain.handle('ast:getDuplicateSymbols', async (_, projectPath: string) => {
+    try {
+      const symbols = await analyzeProjectSymbols(projectPath)
+      const duplicates: { [key: string]: ProjectSymbol[] } = {}
+
+      // Group symbols by name and type
+      const symbolMap = new Map<string, ProjectSymbol[]>()
+
+      symbols.forEach((symbol) => {
+        const key = `${symbol.type}:${symbol.name}`
+        if (!symbolMap.has(key)) {
+          symbolMap.set(key, [])
+        }
+        symbolMap.get(key)!.push(symbol)
+      })
+
+      // Find duplicates (more than one occurrence)
+      symbolMap.forEach((symbols, key) => {
+        if (symbols.length > 1) {
+          duplicates[key] = symbols
+        }
+      })
+
+      return {
+        success: true,
+        duplicates
+      }
+    } catch (error) {
+      console.error('Error finding duplicate symbols:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
